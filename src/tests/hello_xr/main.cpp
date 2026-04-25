@@ -296,14 +296,21 @@ int main(int argc, char* argv[]) {
 
         std::shared_ptr<PlatformData> data = std::make_shared<PlatformData>();
 
-        // Spawn a thread to wait for a keypress
+        // Spawn a thread to wait for a keypress unless runtime testing needs
+        // the sample to keep rendering in a non-interactive launch.
         static bool quitKeyPressed = false;
-        auto exitPollingThread = std::thread{[] {
-            Log::Write(Log::Level::Info, "Press any key to shutdown...");
-            (void)getchar();
-            quitKeyPressed = true;
-        }};
-        exitPollingThread.detach();
+        const bool disableKeyExit = std::getenv("HELLO_XR_DISABLE_KEY_EXIT") != nullptr;
+        if (!disableKeyExit) {
+            auto exitPollingThread = std::thread{[] {
+                Log::Write(Log::Level::Info, "Press any key to shutdown...");
+                if (getchar() != EOF) {
+                    quitKeyPressed = true;
+                }
+            }};
+            exitPollingThread.detach();
+        } else {
+            Log::Write(Log::Level::Info, "Keyboard shutdown disabled by HELLO_XR_DISABLE_KEY_EXIT");
+        }
 
         bool requestRestart = false;
         do {
